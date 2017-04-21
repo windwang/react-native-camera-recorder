@@ -8,6 +8,7 @@
 #import "NSMutableDictionary+ImageMetadata.m"
 #import <AssetsLibrary/ALAssetsLibrary.h>
 #import <AVFoundation/AVFoundation.h>
+#import <MediaPlayer/MPMoviePlayerController.h>
 #import <ImageIO/ImageIO.h>
 #import "RCTSensorOrientationChecker.h"
 
@@ -141,24 +142,30 @@ RCT_CUSTOM_VIEW_PROPERTY(captureQuality, NSInteger, RCTCamera) {
     default:
     case RCTCameraCaptureSessionPresetHigh:
       qualityString = AVCaptureSessionPresetHigh;
+      self.mp4Preset=AVAssetExportPresetHighestQuality;
       break;
     case RCTCameraCaptureSessionPresetMedium:
       qualityString = AVCaptureSessionPresetMedium;
+          self.mp4Preset=AVAssetExportPresetMediumQuality;
       break;
     case RCTCameraCaptureSessionPresetLow:
       qualityString = AVCaptureSessionPresetLow;
+          self.mp4Preset=AVAssetExportPresetLowQuality;
       break;
     case RCTCameraCaptureSessionPresetPhoto:
       qualityString = AVCaptureSessionPresetPhoto;
       break;
     case RCTCameraCaptureSessionPreset1080p:
       qualityString = AVCaptureSessionPreset1920x1080;
+          self.mp4Preset=AVAssetExportPreset1920x1080;
       break;
     case RCTCameraCaptureSessionPreset720p:
       qualityString = AVCaptureSessionPreset1280x720;
+          self.mp4Preset=AVAssetExportPreset1280x720;
       break;
     case RCTCameraCaptureSessionPreset480p:
       qualityString = AVCaptureSessionPreset640x480;
+      self.mp4Preset=AVAssetExportPreset640x480;
       break;
   }
 
@@ -780,25 +787,74 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
     self.videoTarget = target;
   });
 }
-
-- (void)captureOutput:(AVCaptureFileOutput *)captureOutput
-didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL
-      fromConnections:(NSArray *)connections
-                error:(NSError *)error
+-(void)convertVideoToMp4:(NSURL *)fileURL
+                 callback:(RCTResponseSenderBlock)successCallback
 {
-  BOOL recordSuccess = YES;
-  if ([error code] != noErr) {
-    // A problem occurred: Find out if the recording was successful.
-    id value = [[error userInfo] objectForKey:AVErrorRecordingSuccessfullyFinishedKey];
-    if (value) {
-      recordSuccess = [value boolValue];
+  //  NSString *docDir = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+    NSFileManager * fileManager = [NSFileManager defaultManager];
+    
+    
+    NSURL *ouputURL = [[fileURL URLByDeletingPathExtension] URLByAppendingPathExtension:@"mp4"];
+    //NSURL *imageURL=[[fileURL URLByDeletingPathExtension] URLByAppendingPathExtension:@"jpg"];
+   
+    if([fileManager fileExistsAtPath:[ouputURL path]]){
+        [fileManager removeItemAtURL:ouputURL error:nil];
     }
-  }
-  if (!recordSuccess) {
-    self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(@"Error while recording"));
-    return;
-  }
+    
+    
+    MPMoviePlayerController *movie=[[MPMoviePlayerController alloc] initWithContentURL:fileURL];
+    UIImage *image=[movie thumbnailImageAtTime:1 timeOption:MPMovieTimeOptionExact];
+   // [UIImageJPEGRepresentation(image, 1.0) writeToURL:imageURL atomically:true];
+    
+    AVURLAsset *avAsset = [AVURLAsset URLAssetWithURL:fileURL options:nil];
+    NSArray *compatiblePresets = [AVAssetExportSession
+                                  exportPresetsCompatibleWithAsset:avAsset];
+    
+    
+    
+    AVAssetExportSession *exportSession = [[AVAssetExportSession alloc]initWithAsset:avAsset presetName:self.mp4Preset];
+    //AVAssetExportPresetMediumQuality
+    
+  //  NSString* documentsDirectory=[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+    exportSession.outputURL = ouputURL;
+    //set the output file format if you want to make it in other file format (ex .3gp)
+    exportSession.outputFileType = AVFileTypeMPEG4;
+    exportSession.shouldOptimizeForNetworkUse = YES;
+    
+    [exportSession exportAsynchronouslyWithCompletionHandler:^{
+       
+        NSError *error=[exportSession error];
+        switch ([exportSession status])
+        {
+            case AVAssetExportSessionStatusFailed:
+                
+                self.videoReject(RCTErrorUnspecified, nil, [exportSession error]);
+                NSLog(@"Export session failed");
+                break;
+            case AVAssetExportSessionStatusCancelled:
+                self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(@"Export canceled"));
+                NSLog(@"Export canceled");
+                break;
+            case AVAssetExportSessionStatusCompleted:
+            {
+                
+                //Video conversion finished
+                NSLog(@"Successful!");
+                successCallback(@[ouputURL,image]);
+            }
+                break;
+            default:
+                break;
+        }
+        //NSError *error = nil;
+        //[fileManager removeItemAtURL:fileURL error:&error   ];
+        
+    }];
+}
 
+
+- (void)saveVideo:(NSURL *)outputFileURL  image:(UIImage *)image captureOutput:(AVCaptureFileOutput *)captureOutput
+{
   AVURLAsset* videoAsAsset = [AVURLAsset URLAssetWithURL:outputFileURL options:nil];
   AVAssetTrack* videoTrack = [[videoAsAsset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0];
   float videoWidth;
@@ -825,23 +881,38 @@ didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL
   }];
 
   if (self.videoTarget == RCTCameraCaptureTargetCameraRoll) {
+      
     ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
-    if ([library videoAtPathIsCompatibleWithSavedPhotosAlbum:outputFileURL]) {
-      [library writeVideoAtPathToSavedPhotosAlbum:outputFileURL
-                                  completionBlock:^(NSURL *assetURL, NSError *error) {
-                                    if (error) {
-                                      self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(error.description));
-                                      return;
-                                    }
-                                    [videoInfo setObject:[assetURL absoluteString] forKey:@"path"];
-                                    self.videoResolve(videoInfo);
-                                  }];
+      
+  
+      if ([library videoAtPathIsCompatibleWithSavedPhotosAlbum:outputFileURL]) {
+          [library writeVideoAtPathToSavedPhotosAlbum:outputFileURL completionBlock:^(NSURL *assetURL, NSError *error) {
+              if (error) {
+                  self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(error.description));
+                  return;
+              }
+              
+              [videoInfo setObject:[assetURL absoluteString] forKey:@"path"];
+              
+              [library writeImageToSavedPhotosAlbum:[image CGImage] metadata:nil completionBlock:^(NSURL *assetURL, NSError *error) {
+                  if (error) {
+                      self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(error.description));
+                      return;
+                  }
+                  [videoInfo setObject:[assetURL absoluteString ]forKey:@"thumb"];
+                  self.videoResolve(videoInfo);
+              }];
+              
+          }];
     }
   }
   else if (self.videoTarget == RCTCameraCaptureTargetDisk) {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString *documentsDirectory = [paths firstObject];
-    NSString *fullPath = [[documentsDirectory stringByAppendingPathComponent:[[NSUUID UUID] UUIDString]] stringByAppendingPathExtension:@"mov"];
+    NSString *fileName=[[NSUUID UUID] UUIDString];
+    NSString *fullPath = [[documentsDirectory stringByAppendingPathComponent:fileName] stringByAppendingPathExtension:@"mp4"];
+    NSString *imagePath = [[documentsDirectory stringByAppendingPathComponent:fileName ] stringByAppendingPathExtension:@"jpg"];
+                                                
 
     NSFileManager * fileManager = [NSFileManager defaultManager];
     NSError * error = nil;
@@ -851,12 +922,16 @@ didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL
       self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(error.description));
       return;
     }
+    [UIImageJPEGRepresentation(image, 0.95) writeToFile:imagePath atomically:YES];
+    
     [videoInfo setObject:fullPath forKey:@"path"];
+    [videoInfo setObject:imagePath forKey:@"thumb"];
+    
     self.videoResolve(videoInfo);
-  }
-  else if (self.videoTarget == RCTCameraCaptureTargetTemp) {
+  } else if (self.videoTarget == RCTCameraCaptureTargetTemp) {
     NSString *fileName = [[NSProcessInfo processInfo] globallyUniqueString];
-    NSString *fullPath = [NSString stringWithFormat:@"%@%@.mov", NSTemporaryDirectory(), fileName];
+    NSString *fullPath = [NSString stringWithFormat:@"%@%@.mp4", NSTemporaryDirectory(), fileName];
+    NSString *imagePath = [NSString stringWithFormat:@"%@%@.jpg", NSTemporaryDirectory(), fileName];
 
     NSFileManager * fileManager = [NSFileManager defaultManager];
     NSError * error = nil;
@@ -866,12 +941,39 @@ didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL
         self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(error.description));
         return;
     }
+    [UIImageJPEGRepresentation(image, 0.95) writeToFile:imagePath atomically:YES];
+      
     [videoInfo setObject:fullPath forKey:@"path"];
+    [videoInfo setObject:imagePath forKey:@"thumb"];
+
     self.videoResolve(videoInfo);
   }
   else {
     self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(@"Target not supported"));
   }
+}
+
+- (void)captureOutput:(AVCaptureFileOutput *)captureOutput
+didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL
+      fromConnections:(NSArray *)connections
+                error:(NSError *)error
+{
+  BOOL recordSuccess = YES;
+  if ([error code] != noErr) {
+    // A problem occurred: Find out if the recording was successful.
+    id value = [[error userInfo] objectForKey:AVErrorRecordingSuccessfullyFinishedKey];
+    if (value) {
+      recordSuccess = [value boolValue];
+    }
+  }
+  if (!recordSuccess) {
+    self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(@"Error while recording"));
+    return;
+  }
+  [self convertVideoToMp4:outputFileURL callback:^(NSArray *response) {
+       [self saveVideo:[response objectAtIndex:0] image:[response objectAtIndex:1] captureOutput:captureOutput];
+  }];
+ 
 }
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputMetadataObjects:(NSArray *)metadataObjects fromConnection:(AVCaptureConnection *)connection {
