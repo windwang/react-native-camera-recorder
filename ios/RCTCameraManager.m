@@ -846,8 +846,7 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
             default:
                 break;
         }
-        //NSError *error = nil;
-        //[fileManager removeItemAtURL:fileURL error:&error   ];
+        [fileManager removeItemAtURL:fileURL error:&error   ];
         
     }];
 }
