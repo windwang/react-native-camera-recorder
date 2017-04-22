@@ -921,7 +921,7 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
       self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(error.description));
       return;
     }
-    [UIImageJPEGRepresentation(image, 0.95) writeToFile:imagePath atomically:YES];
+    [UIImageJPEGRepresentation(image, 0.80) writeToFile:imagePath atomically:YES];
     
     [videoInfo setObject:fullPath forKey:@"path"];
     [videoInfo setObject:imagePath forKey:@"thumb"];
@@ -940,7 +940,7 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
         self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(error.description));
         return;
     }
-    [UIImageJPEGRepresentation(image, 0.95) writeToFile:imagePath atomically:YES];
+    [UIImageJPEGRepresentation(image, 0.80) writeToFile:imagePath atomically:YES];
       
     [videoInfo setObject:fullPath forKey:@"path"];
     [videoInfo setObject:imagePath forKey:@"thumb"];
