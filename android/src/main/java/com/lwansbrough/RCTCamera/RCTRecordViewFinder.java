@@ -377,4 +377,11 @@ public class RCTRecordViewFinder extends SurfaceView implements
   public void onEncodeError() {
 
   }
+
+  @Override
+  protected void onDetachedFromWindow() {
+    super.onDetachedFromWindow();
+    mMediaRecorder.release();
+
+  }
 }
