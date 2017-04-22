@@ -400,6 +400,11 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
         promise.resolve(null != flashModes && !flashModes.isEmpty());
     }
 
+    @ReactMethod
+    public  void  release(){
+      if(RCTCameraView.cameraView!=null)
+        RCTCameraView.cameraView.release();
+    }
 
 
 
@@ -420,9 +425,8 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
     @Override
     public void onHostPause() {
         // On pause, we stop any pending recording session
-        if (mRecordingPromise != null) {
-            releaseMediaRecorder();
-        }
+      if(RCTCameraView.cameraView!=null)
+        RCTCameraView.cameraView.release();
     }
 
     @Override

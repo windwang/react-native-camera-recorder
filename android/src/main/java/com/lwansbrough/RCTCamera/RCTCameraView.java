@@ -206,16 +206,9 @@ public class RCTCameraView extends ViewGroup {
     this._viewFinder.stopCapture(promise);
   }
 
-//    @Override
-//    public void onViewRemoved(View child) {
-//        super.onViewRemoved(child);
-//
-//    }
 
+  public void release() {
 
-  @Override
-  protected void onDetachedFromWindow() {
-    super.onDetachedFromWindow();
-    cameraView = null;
+    this._viewFinder.release();;
   }
 }

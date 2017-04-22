@@ -167,6 +167,8 @@ export default class Camera extends Component {
     if (this.state.isRecording) {
       this.stopCapture();
     }
+    if(CameraManager.release) 
+      CameraManager.release();
   }
 
   componentWillReceiveProps(newProps) {
