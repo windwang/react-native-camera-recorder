@@ -112,4 +112,11 @@ public class RCTCameraViewManager extends ViewGroupManager<RCTCameraView> {
         }
         view.setBarCodeTypes(result);
     }
+
+    @Override
+    public void onDropViewInstance(RCTCameraView view) {
+        view.release();
+        super.onDropViewInstance(view);
+
+    }
 }

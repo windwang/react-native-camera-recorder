@@ -399,12 +399,12 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
         List<String> flashModes = camera.getParameters().getSupportedFlashModes();
         promise.resolve(null != flashModes && !flashModes.isEmpty());
     }
-
-    @ReactMethod
-    public  void  release(){
-      if(RCTCameraView.cameraView!=null)
-        RCTCameraView.cameraView.release();
-    }
+//
+//    @ReactMethod
+//    public  void  release(){
+//      if(RCTCameraView.cameraView!=null)
+//        RCTCameraView.cameraView.release();
+//    }
 
 
 
