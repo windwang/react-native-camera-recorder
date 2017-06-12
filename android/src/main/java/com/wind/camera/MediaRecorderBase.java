@@ -118,7 +118,7 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
      */
     public static int MIN_FRAME_RATE = 8;
 
-    public static int CAPTURE_THUMBNAILS_TIME = 1;
+    public static int CAPTURE_THUMBNAILS_TIME = 0;
 
     public static boolean doH264Compress = true;
 
