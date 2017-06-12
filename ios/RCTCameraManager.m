@@ -803,7 +803,7 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
     
     
     MPMoviePlayerController *movie=[[MPMoviePlayerController alloc] initWithContentURL:fileURL];
-    UIImage *image=[movie thumbnailImageAtTime:1 timeOption:MPMovieTimeOptionExact];
+    UIImage *image=[movie thumbnailImageAtTime:0 timeOption:MPMovieTimeOptionExact];
    // [UIImageJPEGRepresentation(image, 1.0) writeToURL:imageURL atomically:true];
     
     AVURLAsset *avAsset = [AVURLAsset URLAssetWithURL:fileURL options:nil];
