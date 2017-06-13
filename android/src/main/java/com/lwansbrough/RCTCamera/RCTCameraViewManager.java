@@ -18,6 +18,7 @@ public class RCTCameraViewManager extends ViewGroupManager<RCTCameraView> {
         return REACT_CLASS;
     }
 
+
     @Override
     public RCTCameraView createViewInstance(ThemedReactContext context) {
         return new RCTCameraView(context);

@@ -28,11 +28,12 @@ public class RCTCamera {
   private int _adjustedDeviceOrientation = 0;
 
   public static RCTCamera getInstance() {
+
     return ourInstance;
   }
 
-  public static void createInstance(int deviceOrientation) {
-    ourInstance = new RCTCamera(deviceOrientation);
+  public static RCTCamera createInstance(int deviceOrientation) {
+    return ourInstance = new RCTCamera(deviceOrientation);
   }
 
 
