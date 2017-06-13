@@ -20,7 +20,7 @@ import java.util.List;
 public class RCTCameraView extends ViewGroup {
   private final OrientationEventListener _orientationListener;
   private final Context _context;
-  private RCTRecordViewFinder _viewFinder = null;
+  private RCTCameraViewFinderBase _viewFinder = null;
   private int _actualDeviceOrientation = -1;
   private int _aspect = RCTCameraModule.RCT_CAMERA_ASPECT_FIT;
   private int _captureMode = RCTCameraModule.RCT_CAMERA_CAPTURE_MODE_STILL;
@@ -66,8 +66,8 @@ public class RCTCameraView extends ViewGroup {
     if (this._viewFinder == child) return;
     // remove and readd view to make sure it is in the back.
     // @TODO figure out why there was a z order issue in the first place and fix accordingly.
-    this.removeView(this._viewFinder);
-    this.addView(this._viewFinder, 0);
+    this.removeView((View) this._viewFinder);
+    this.addView((View) this._viewFinder, 0);
   }
 
   public void setAspect(int aspect) {
@@ -78,23 +78,36 @@ public class RCTCameraView extends ViewGroup {
   public void setCameraType(final int type) {
     if (null != this._viewFinder) {
       this._viewFinder.setCameraType(type);
-      //   RCTCamera.getInstance().adjustPreviewLayout(type);
+      if (this._captureMode != RCTCameraModule.RCT_CAMERA_CAPTURE_MODE_VIDEO)
+        RCTCamera.getInstance().adjustPreviewLayout(type);
+
     } else {
-      _viewFinder = new RCTRecordViewFinder(_context, type);
-      _viewFinder.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-      if (-1 != this._flashMode) {
-        _viewFinder.setFlashMode(this._flashMode);
-      }
-      if (-1 != this._torchMode) {
-        _viewFinder.setFlashMode(this._torchMode);
-      }
-      addView(_viewFinder);
+      createViewFinder(type);
     }
+  }
+
+  private void createViewFinder(int type) {
+    if (this._captureMode == RCTCameraModule.RCT_CAMERA_CAPTURE_MODE_VIDEO) {
+      _viewFinder = new RCTRecordViewFinder(_context, type);
+    } else {
+      _viewFinder = new RCTCameraViewFinder(_context, type);
+    }
+    _viewFinder.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+    if (-1 != this._flashMode) {
+      _viewFinder.setFlashMode(this._flashMode);
+    }
+    if (-1 != this._torchMode) {
+      _viewFinder.setFlashMode(this._torchMode);
+    }
+    addView((View) _viewFinder);
   }
 
   public void setCaptureMode(final int captureMode) {
     this._captureMode = captureMode;
     if (this._viewFinder != null) {
+      if (!(this._viewFinder instanceof RCTRecordViewFinder)) {
+
+      }
       this._viewFinder.setCaptureMode(captureMode);
     }
   }
@@ -209,6 +222,7 @@ public class RCTCameraView extends ViewGroup {
 
   public void release() {
 
-    this._viewFinder.release();;
+    this._viewFinder.release();
+    ;
   }
 }

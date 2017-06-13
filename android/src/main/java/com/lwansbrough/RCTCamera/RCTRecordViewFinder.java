@@ -33,7 +33,7 @@ import static com.wind.camera.MediaRecorderBase.SMALL_VIDEO_WIDTH;
 
 public class RCTRecordViewFinder extends SurfaceView implements
   MediaRecorderBase.OnErrorListener, View.OnClickListener, MediaRecorderBase.OnPreparedListener,
-  MediaRecorderBase.OnEncodeListener {
+  MediaRecorderBase.OnEncodeListener, RCTCameraViewFinderBase {
 
   /**
    * SDK视频录制对象

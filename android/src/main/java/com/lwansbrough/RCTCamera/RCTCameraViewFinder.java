@@ -12,7 +12,9 @@ import android.view.TextureView;
 import android.os.AsyncTask;
 
 import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactContext;
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
@@ -28,7 +30,7 @@ import com.google.zxing.PlanarYUVLuminanceSource;
 import com.google.zxing.Result;
 import com.google.zxing.common.HybridBinarizer;
 
-class RCTCameraViewFinder extends TextureView implements TextureView.SurfaceTextureListener, Camera.PreviewCallback {
+class RCTCameraViewFinder extends TextureView implements TextureView.SurfaceTextureListener, Camera.PreviewCallback ,RCTCameraViewFinderBase{
     private int _cameraType;
     private int _captureMode;
     private SurfaceTexture _surfaceTexture;
@@ -104,7 +106,22 @@ class RCTCameraViewFinder extends TextureView implements TextureView.SurfaceText
         RCTCamera.getInstance().setTorchMode(_cameraType, torchMode);
     }
 
-    public void setFlashMode(int flashMode) {
+  @Override
+  public void capture(ReadableMap options, Promise promise) {
+
+  }
+
+  @Override
+  public void stopCapture(Promise promise) {
+
+  }
+
+  @Override
+  public void release() {
+
+  }
+
+  public void setFlashMode(int flashMode) {
         RCTCamera.getInstance().setFlashMode(_cameraType, flashMode);
     }
 
