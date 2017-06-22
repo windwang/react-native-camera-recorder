@@ -857,7 +857,7 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
 }
 
 
--- (void)saveVideo:(NSURL *)outputFileURL  image:(UIImage *)image captureOutput:(AVCaptureFileOutput *)captureOutput
+- (void)saveVideo:(NSURL *)outputFileURL  image:(UIImage *)image captureOutput:(AVCaptureFileOutput *)captureOutput
 {
   AVURLAsset* videoAsAsset = [AVURLAsset URLAssetWithURL:outputFileURL options:nil];
   AVAssetTrack* videoTrack = [[videoAsAsset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0];
