@@ -146,26 +146,26 @@ RCT_CUSTOM_VIEW_PROPERTY(captureQuality, NSInteger, RCTCamera) {
       break;
     case RCTCameraCaptureSessionPresetMedium:
       qualityString = AVCaptureSessionPresetMedium;
-          self.mp4Preset=AVAssetExportPresetMediumQuality;
+        self.mp4Preset=AVAssetExportPresetMediumQuality;
       break;
     case RCTCameraCaptureSessionPresetLow:
       qualityString = AVCaptureSessionPresetLow;
-          self.mp4Preset=AVAssetExportPresetLowQuality;
+       self.mp4Preset=AVAssetExportPresetLowQuality;
       break;
     case RCTCameraCaptureSessionPresetPhoto:
       qualityString = AVCaptureSessionPresetPhoto;
       break;
     case RCTCameraCaptureSessionPreset1080p:
       qualityString = AVCaptureSessionPreset1920x1080;
-          self.mp4Preset=AVAssetExportPreset1920x1080;
+         self.mp4Preset=AVAssetExportPreset1920x1080;
       break;
     case RCTCameraCaptureSessionPreset720p:
       qualityString = AVCaptureSessionPreset1280x720;
-          self.mp4Preset=AVAssetExportPreset1280x720;
+       self.mp4Preset=AVAssetExportPreset1280x720;
       break;
     case RCTCameraCaptureSessionPreset480p:
       qualityString = AVCaptureSessionPreset640x480;
-      self.mp4Preset=AVAssetExportPreset640x480;
+       self.mp4Preset=AVAssetExportPreset640x480;
       break;
   }
 
@@ -602,32 +602,37 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
           NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
 
           // create cgimage
-          CGImageRef CGImage;
-          CGImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
+          CGImageRef cgImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
 
           // Rotate it
           CGImageRef rotatedCGImage;
           if ([options objectForKey:@"rotation"]) {
             float rotation = [[options objectForKey:@"rotation"] floatValue];
-            rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:rotation];
-          } else {
+            rotatedCGImage = [self newCGImageRotatedByAngle:cgImage angle:rotation];
+          } else if ([[options objectForKey:@"fixOrientation"] boolValue] == YES) {
             // Get metadata orientation
             int metadataOrientation = [[imageMetadata objectForKey:(NSString *)kCGImagePropertyOrientation] intValue];
 
+            bool rotated = false;
+            //see http://www.impulseadventure.com/photo/exif-orientation.html
             if (metadataOrientation == 6) {
-              rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:270];
-            } else if (metadataOrientation == 1) {
-              rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:0];
+              rotatedCGImage = [self newCGImageRotatedByAngle:cgImage angle:270];
+              rotated = true;
             } else if (metadataOrientation == 3) {
-              rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:180];
+              rotatedCGImage = [self newCGImageRotatedByAngle:cgImage angle:180];
+              rotated = true;
             } else {
-              rotatedCGImage = [self newCGImageRotatedByAngle:CGImage angle:0];
+              rotatedCGImage = cgImage;
             }
-          }
-          CGImageRelease(CGImage);
 
-          // Erase metadata orientation
-          [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyOrientation];
+            if(rotated) {
+              [imageMetadata setObject:[NSNumber numberWithInteger:1] forKey:(NSString *)kCGImagePropertyOrientation];
+              CGImageRelease(cgImage);
+            }
+          } else {
+            rotatedCGImage = cgImage;
+          }
+
           // Erase stupid TIFF stuff
           [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
 
@@ -852,7 +857,7 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
 }
 
 
-- (void)saveVideo:(NSURL *)outputFileURL  image:(UIImage *)image captureOutput:(AVCaptureFileOutput *)captureOutput
+-- (void)saveVideo:(NSURL *)outputFileURL  image:(UIImage *)image captureOutput:(AVCaptureFileOutput *)captureOutput
 {
   AVURLAsset* videoAsAsset = [AVURLAsset URLAssetWithURL:outputFileURL options:nil];
   AVAssetTrack* videoTrack = [[videoAsAsset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0];
@@ -951,7 +956,6 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
     self.videoReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(@"Target not supported"));
   }
 }
-
 - (void)captureOutput:(AVCaptureFileOutput *)captureOutput
 didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL
       fromConnections:(NSArray *)connections
@@ -1063,16 +1067,18 @@ didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL
             AVCaptureDevice *device = [[self videoCaptureDeviceInput] device];
             if([device isFocusPointOfInterestSupported] &&
                [device isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
-                CGRect screenRect = [[UIScreen mainScreen] bounds];
-                double screenWidth = screenRect.size.width;
-                double screenHeight = screenRect.size.height;
-                double focus_x = atPoint.x/screenWidth;
-                double focus_y = atPoint.y/screenHeight;
+                CGRect cameraViewRect = [[self camera] bounds];
+                double cameraViewWidth = cameraViewRect.size.width;
+                double cameraViewHeight = cameraViewRect.size.height;
+                double focus_x = atPoint.x/cameraViewWidth;
+                double focus_y = atPoint.y/cameraViewHeight;
+                CGPoint cameraViewPoint = CGPointMake(focus_x, focus_y);
                 if([device lockForConfiguration:nil]) {
-                    [device setFocusPointOfInterest:CGPointMake(focus_x,focus_y)];
+                    [device setFocusPointOfInterest:cameraViewPoint];
                     [device setFocusMode:AVCaptureFocusModeAutoFocus];
-                    if ([device isExposureModeSupported:AVCaptureExposureModeAutoExpose]){
+                    if ([device isExposurePointOfInterestSupported] && [device isExposureModeSupported:AVCaptureExposureModeAutoExpose]) {
                         [device setExposureMode:AVCaptureExposureModeAutoExpose];
+                        [device setExposurePointOfInterest:cameraViewPoint];
                     }
                     [device unlockForConfiguration];
                 }
